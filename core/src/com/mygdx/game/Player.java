@@ -6,6 +6,7 @@ import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
+import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.physics.box2d.Body;
@@ -20,121 +21,163 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
  */
 
 
-public class Player  {
+public class Player {
     // what benefits are you getting from your player being an Actor? None, unless you are going to get a stage on the screen.
     State state; // enumeration definition below
-    Body mainBody, footSensor;
+    Body bdyMain, bdyFoot;
     BodyDef bdefMain, bdefFoot;
     FixtureDef fdefPlayer, fdefFoot;
     PolygonShape shape;
     TextureAtlas taIdle = new TextureAtlas(Gdx.files.internal("player/idle/idle.pack"));
     TextureAtlas taRun = new TextureAtlas(Gdx.files.internal("player/run/run.pack"));
-    Sprite[] sIdle = new Sprite[9];
-    Sprite[] sRun = new Sprite[9];
-    Animation idle, run;
-    float elapsedTime = 0;
+    Sprite[] arSprIdle = new Sprite[9];
+    Sprite[] arSprRun = new Sprite[9];
+    Sprite sprPlayer; // a temporary Sprite to clean up the draw function - useless since I need a TR.
+    TextureRegion trPlayer; // since an animation returns a TextureRegion, and not a Sprite.
+    Animation aniIdle, aniRun;
+    float fElapsedTime = 0;
     World world;
+    float fX, fY, fW, fH; // for player dimensions.
 
     boolean bRight = true;
+    boolean isIdle; // getting this attribute out of the State enumeration.
 
     enum State {
-        idle, left, right
+        left, right
         // enumeration for animations
         // why not iL iR, rL, rR ???
     }
 
-    Player(World world, Vector2 spawnpoint) {
+    Player(World world, Vector2 v2SpawnPoint) {
         this.world = world;
-        createMainBody(spawnpoint);
-        createFootSensor();
+        createbdyMain(v2SpawnPoint);
+        createbdyFoot();
     }
 
 
-    private void createMainBody(Vector2 spawnpoint) {// v2SpawnPt
-        this.state = state.idle;
+    private void createbdyMain(Vector2 v2SpawnPoint) {// v2SpawnPt
+        isIdle = true;
+        //this.state = state.idle;
         for (int i = 1; i < 10; i++) {
-            sIdle[i - 1] = new Sprite(taIdle.findRegion("idle (" + i + ")"));
-            sRun[i - 1] = new Sprite(taRun.findRegion("run (" + i + ")"));
+            arSprIdle[i - 1] = new Sprite(taIdle.findRegion("idle (" + i + ")"));
+            arSprRun[i - 1] = new Sprite(taRun.findRegion("run (" + i + ")"));
         }
-        idle = new Animation(10, sIdle); // the first int is the frame duration. Idle is slower than running.
-        run = new Animation(5, sRun);
+        // the next two variables are needed in the draw function.
+        fW = arSprIdle[0].getWidth();
+        fH = arSprIdle[0].getHeight();
+        aniIdle = new Animation(10, arSprIdle); // the first int is the frame duration. Idle is slower than running.
+        aniRun = new Animation(5, arSprRun);
         bdefMain = new BodyDef();
         shape = new PolygonShape();
 
-        bdefMain.position.set(new Vector2(spawnpoint.x / 2, spawnpoint.y / 2));
+        bdefMain.position.set(new Vector2(v2SpawnPoint.x / 2, v2SpawnPoint.y / 2));
         bdefMain.type = BodyDef.BodyType.DynamicBody;
-        mainBody = world.createBody(bdefMain);
-        mainBody.setFixedRotation(true);
+        bdyMain = world.createBody(bdefMain);
+        bdyMain.setFixedRotation(true);
 
-        shape.setAsBox(sIdle[0].getWidth() / 4, sIdle[0].getHeight() / 4);
+        shape.setAsBox(arSprIdle[0].getWidth() / 4, arSprIdle[0].getHeight() / 4);
         fdefPlayer = new FixtureDef();
         fdefPlayer.shape = shape;
         fdefPlayer.filter.categoryBits = 0;
         fdefPlayer.friction = 1;
-        mainBody.setSleepingAllowed(false);
-        mainBody.createFixture(fdefPlayer);
+        bdyMain.setSleepingAllowed(false);
+        bdyMain.createFixture(fdefPlayer);
         shape.dispose();
         // set categorybit to 0 so it collides with nothing
     }
 
-    private void createFootSensor() {
+    private void createbdyFoot() {
         shape = new PolygonShape();
 
-        shape.setAsBox(sIdle[0].getWidth() / 4, 0.2f, new Vector2(mainBody.getWorldCenter().x / 4 - sIdle[0].getWidth() / 4 + 0.5f, mainBody.getPosition().y / 4 - sIdle[0].getHeight() - 9.5f), 0);
+        shape.setAsBox(arSprIdle[0].getWidth() / 4, 0.2f, new Vector2(bdyMain.getWorldCenter().x / 4 - arSprIdle[0].getWidth() / 4 + 0.5f, bdyMain.getPosition().y / 4 - arSprIdle[0].getHeight() - 9.5f), 0);
         fdefFoot = new FixtureDef();
         fdefFoot.shape = shape;
         fdefFoot.filter.categoryBits = 1;
 
-        mainBody.createFixture(fdefFoot);
+        bdyMain.createFixture(fdefFoot);
         shape.dispose();
         // create a foot sensor to detect whether or not the player is grounded
     }
 
     Vector3 getPosition() {
-        return new Vector3(mainBody.getPosition().x, mainBody.getPosition().y, 0);
+        return new Vector3(bdyMain.getPosition().x, bdyMain.getPosition().y, 0);
     }
 
     void draw(SpriteBatch sb) {
         // drawing sprite on player body using default library, not using animatedbox2dsprite because it doesn't loop the animation
-        elapsedTime++;
+        fElapsedTime++;
+        // I will comment out the code below to show how I will try to optimize it. Don't code is logical, but the isIdle
+        // may be able to clean it up. I will use his bRight variable to get rid of the need for any "states".
+        // Don's code is commented below
+        fX =  bdyMain.getPosition().x;
+        fY =  bdyMain.getPosition().y;
+        // the next two vars should be populated in the body creation, since the values never change.
+        // since these values are the same as the player running, they are all good.
+        // update - I added the fW and fH population in the createBdyMain function since we only need to do it once.
+
+
+
+        if (isIdle) {
+            trPlayer = aniIdle.getKeyFrame(fElapsedTime, true);
+            if (bRight) {
+                //sb.draw(aniIdle.getKeyFrame(fElapsedTime, true), bdyMain.getPosition().x - arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, arSprIdle[0].getWidth() / 2, arSprIdle[0].getHeight() / 2);
+                //sb.draw(aniIdle.getKeyFrame(fElapsedTime, true), fX - fW / 4, fY - fH / 4, fW / 2, fH / 2);
+                sb.draw(trPlayer, fX - fW / 4, fY - fH / 4, fW / 2, fH / 2);
+            } else {
+                //sb.draw(aniIdle.getKeyFrame(fElapsedTime, true), bdyMain.getPosition().x + arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, -arSprIdle[0].getWidth() / 2, arSprIdle[0].getHeight() / 2);
+                sb.draw(trPlayer, fX + fW / 4, fY - fH / 4, -fW / 2, fH / 2);
+            }
+        } else {
+            trPlayer = aniRun.getKeyFrame(fElapsedTime, true);
+            if (bRight) {
+                sb.draw(trPlayer, bdyMain.getPosition().x - arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, arSprRun[0].getWidth() / 2, arSprRun[0].getHeight() / 2);
+            } else {
+                sb.draw(trPlayer, bdyMain.getPosition().x + arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, -arSprRun[0].getWidth() / 2, arSprRun[0].getHeight() / 2);
+            }
+        }
+
+        /*
         if (this.state == state.idle) {
             if (bRight) {
-                sb.draw(idle.getKeyFrame(elapsedTime, true), mainBody.getPosition().x - sIdle[0].getWidth() / 4, mainBody.getPosition().y - sIdle[0].getHeight() / 4, sIdle[0].getWidth() / 2, sIdle[0].getHeight() / 2);
+                sb.draw(idle.getKeyFrame(fElapsedTime, true), bdyMain.getPosition().x - arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, arSprIdle[0].getWidth() / 2, arSprIdle[0].getHeight() / 2);
             } else {
-                sb.draw(idle.getKeyFrame(elapsedTime, true), mainBody.getPosition().x + sIdle[0].getWidth() / 4, mainBody.getPosition().y - sIdle[0].getHeight() / 4, -sIdle[0].getWidth() / 2, sIdle[0].getHeight() / 2);
+                sb.draw(idle.getKeyFrame(fElapsedTime, true), bdyMain.getPosition().x + arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, -arSprIdle[0].getWidth() / 2, arSprIdle[0].getHeight() / 2);
             }
         } else if (this.state == state.right) {
-            sb.draw(run.getKeyFrame(elapsedTime, true), mainBody.getPosition().x - sIdle[0].getWidth() / 4, mainBody.getPosition().y - sIdle[0].getHeight() / 4, sRun[0].getWidth() / 2, sRun[0].getHeight() / 2);
+            sb.draw(run.getKeyFrame(fElapsedTime, true), bdyMain.getPosition().x - arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, arSprRun[0].getWidth() / 2, arSprRun[0].getHeight() / 2);
         } else if (this.state == state.left) {
-            sb.draw(run.getKeyFrame(elapsedTime, true), mainBody.getPosition().x + sIdle[0].getWidth() / 4, mainBody.getPosition().y - sIdle[0].getHeight() / 4, -sRun[0].getWidth() / 2, sRun[0].getHeight() / 2);
+            sb.draw(run.getKeyFrame(fElapsedTime, true), bdyMain.getPosition().x + arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, -arSprRun[0].getWidth() / 2, arSprRun[0].getHeight() / 2);
+        }*/
         }
-    }
 
     void move() {
         // i don't even need to pass a keycode, i just call player.move() in render and i can check
         // for keypresses by detecting if a button is down or not
-        if (mainBody.getLinearVelocity().x > 100) {
-            mainBody.getLinearVelocity().x--;
-        } else if (mainBody.getLinearVelocity().x < -100) {
-            mainBody.getLinearVelocity().x++;
+        if (bdyMain.getLinearVelocity().x > 100) {
+            bdyMain.getLinearVelocity().x--;
+        } else if (bdyMain.getLinearVelocity().x < -100) {
+            bdyMain.getLinearVelocity().x++;
         }
         if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-            this.state = state.left;
+            //this.state = state.left;
             bRight = false;
-            //mainBody.applyForceToCenter(-200, 0, true);
-            mainBody.setLinearVelocity(-100, mainBody.getLinearVelocity().y);
+            isIdle = false;
+            //bdyMain.applyForceToCenter(-200, 0, true);
+            bdyMain.setLinearVelocity(-100, bdyMain.getLinearVelocity().y);
         } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
             this.state = state.right;
             bRight = true;
-            //mainBody.applyForceToCenter(200, 0, true);
-            mainBody.setLinearVelocity(100, mainBody.getLinearVelocity().y);
+            isIdle = false;
+            //bdyMain.applyForceToCenter(200, 0, true);
+            bdyMain.setLinearVelocity(100, bdyMain.getLinearVelocity().y);
         }
     }
 
     void stop() {
         // stop movement on release of keycode
-        this.state = state.idle;
-        mainBody.setLinearVelocity(0, mainBody.getLinearVelocity().y);
+        //this.state = state.idle;
+        isIdle = true;
+        bdyMain.setLinearVelocity(0, bdyMain.getLinearVelocity().y);
     }
 
     boolean isGrounded = true;
@@ -144,11 +187,11 @@ public class Player  {
         // gravity sucks
         // there is one issue: jumping while moving gives you a lower jump height than jumping while standing
         // used applyForceToCenter and setLinearVelocity, same result
-        mainBody.applyLinearImpulse(new Vector2(0, mainBody.getMass() * 500), mainBody.getWorldCenter(), true);
+        bdyMain.applyLinearImpulse(new Vector2(0, bdyMain.getMass() * 500), bdyMain.getWorldCenter(), true);
     }
 
     Vector2 getLinearVelocity() {
-        return mainBody.getLinearVelocity();
+        return bdyMain.getLinearVelocity();
     }
 
 }
