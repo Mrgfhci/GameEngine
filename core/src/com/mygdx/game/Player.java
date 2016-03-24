@@ -58,15 +58,25 @@ public class Player {
     private void createbdyMain(Vector2 v2SpawnPoint) {// v2SpawnPt
         isIdle = true;
         //this.state = state.idle;
+/*
         for (int i = 1; i < 10; i++) {
             arSprIdle[i - 1] = new Sprite(taIdle.findRegion("idle (" + i + ")"));
             arSprRun[i - 1] = new Sprite(taRun.findRegion("run (" + i + ")"));
         }
+*/
         // the next two variables are needed in the draw function.
-        fW = arSprIdle[0].getWidth();
-        fH = arSprIdle[0].getHeight();
-        aniIdle = new Animation(10, arSprIdle); // the first int is the frame duration. Idle is slower than running.
-        aniRun = new Animation(5, arSprRun);
+        //fW = arSprIdle[0].getWidth();
+        //fH = arSprIdle[0].getHeight();
+        aniIdle = new Animation(10, taIdle.getRegions());
+        aniRun = new Animation(10, taRun.getRegions());
+        // get one textureRegion in order to get the frame's height and width.
+        trPlayer = aniIdle.getKeyFrame(fElapsedTime, true);
+        fW = trPlayer.getRegionWidth();
+        fH = trPlayer.getRegionHeight();
+        //fH = arSprIdle[0].getHeight();
+
+        //aniIdle = new Animation(10, arSprIdle); // the first int is the frame duration. Idle is slower than running.
+        //aniRun = new Animation(5, arSprRun);
         bdefMain = new BodyDef();
         shape = new PolygonShape();
 
@@ -75,7 +85,7 @@ public class Player {
         bdyMain = world.createBody(bdefMain);
         bdyMain.setFixedRotation(true);
 
-        shape.setAsBox(arSprIdle[0].getWidth() / 4, arSprIdle[0].getHeight() / 4);
+        shape.setAsBox(fW / 4, fH / 4);
         fdefPlayer = new FixtureDef();
         fdefPlayer.shape = shape;
         fdefPlayer.filter.categoryBits = 0;
@@ -89,7 +99,7 @@ public class Player {
     private void createbdyFoot() {
         shape = new PolygonShape();
 
-        shape.setAsBox(arSprIdle[0].getWidth() / 4, 0.2f, new Vector2(bdyMain.getWorldCenter().x / 4 - arSprIdle[0].getWidth() / 4 + 0.5f, bdyMain.getPosition().y / 4 - arSprIdle[0].getHeight() - 9.5f), 0);
+        shape.setAsBox(fW / 4, 0.2f, new Vector2(bdyMain.getWorldCenter().x / 4 - fW / 4 + 0.5f, bdyMain.getPosition().y / 4 - fH - 9.5f), 0);
         fdefFoot = new FixtureDef();
         fdefFoot.shape = shape;
         fdefFoot.filter.categoryBits = 1;
@@ -130,9 +140,9 @@ public class Player {
         } else {
             trPlayer = aniRun.getKeyFrame(fElapsedTime, true);
             if (bRight) {
-                sb.draw(trPlayer, bdyMain.getPosition().x - arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, arSprRun[0].getWidth() / 2, arSprRun[0].getHeight() / 2);
+                sb.draw(trPlayer, bdyMain.getPosition().x - fW / 4, bdyMain.getPosition().y - fH / 4, fW / 2, fH / 2);
             } else {
-                sb.draw(trPlayer, bdyMain.getPosition().x + arSprIdle[0].getWidth() / 4, bdyMain.getPosition().y - arSprIdle[0].getHeight() / 4, -arSprRun[0].getWidth() / 2, arSprRun[0].getHeight() / 2);
+                sb.draw(trPlayer, bdyMain.getPosition().x + fW / 4, bdyMain.getPosition().y - fH / 4, -fW / 2,fH / 2);
             }
         }
 
