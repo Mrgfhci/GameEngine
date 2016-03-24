@@ -23,7 +23,7 @@ import com.badlogic.gdx.scenes.scene2d.Actor;
 
 public class Player {
     // what benefits are you getting from your player being an Actor? None, unless you are going to get a stage on the screen.
-    State state; // enumeration definition below
+    //State state; // enumeration definition below
     Body bdyMain, bdyFoot;
     BodyDef bdefMain, bdefFoot;
     FixtureDef fdefPlayer, fdefFoot;
@@ -41,13 +41,13 @@ public class Player {
 
     boolean bRight = true;
     boolean isIdle; // getting this attribute out of the State enumeration.
-
+/*
     enum State {
         left, right
         // enumeration for animations
         // why not iL iR, rL, rR ???
     }
-
+*/
     Player(World world, Vector2 v2SpawnPoint) {
         this.world = world;
         createbdyMain(v2SpawnPoint);
@@ -174,7 +174,7 @@ public class Player {
             //bdyMain.applyForceToCenter(-200, 0, true);
             bdyMain.setLinearVelocity(-100, bdyMain.getLinearVelocity().y);
         } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-            this.state = state.right;
+            //this.state = state.right;
             bRight = true;
             isIdle = false;
             //bdyMain.applyForceToCenter(200, 0, true);
