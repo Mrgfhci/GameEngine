@@ -30,8 +30,8 @@ public class Player {
     PolygonShape shape;
     TextureAtlas taIdle = new TextureAtlas(Gdx.files.internal("player/idle/idle.pack"));
     TextureAtlas taRun = new TextureAtlas(Gdx.files.internal("player/run/run.pack"));
-    Sprite[] arSprIdle = new Sprite[9];
-    Sprite[] arSprRun = new Sprite[9];
+    //Sprite[] arSprIdle = new Sprite[9];
+    //Sprite[] arSprRun = new Sprite[9];
     Sprite sprPlayer; // a temporary Sprite to clean up the draw function - useless since I need a TR.
     TextureRegion trPlayer; // since an animation returns a TextureRegion, and not a Sprite.
     Animation aniIdle, aniRun;
@@ -67,14 +67,13 @@ public class Player {
         // the next two variables are needed in the draw function.
         //fW = arSprIdle[0].getWidth();
         //fH = arSprIdle[0].getHeight();
+        // An easier way to populate an animation:
         aniIdle = new Animation(10, taIdle.getRegions());
         aniRun = new Animation(10, taRun.getRegions());
-        // get one textureRegion in order to get the frame's height and width.
+        // get one textureRegion in order to get the frame's height and width. These 2 variables clean up a lot of code.
         trPlayer = aniIdle.getKeyFrame(fElapsedTime, true);
         fW = trPlayer.getRegionWidth();
         fH = trPlayer.getRegionHeight();
-        //fH = arSprIdle[0].getHeight();
-
         //aniIdle = new Animation(10, arSprIdle); // the first int is the frame duration. Idle is slower than running.
         //aniRun = new Animation(5, arSprRun);
         bdefMain = new BodyDef();
