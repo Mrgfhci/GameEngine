@@ -116,7 +116,7 @@ public class Player {
     void draw(SpriteBatch sb) {
         // drawing sprite on player body using default library, not using animatedbox2dsprite because it doesn't loop the animation
         fElapsedTime++;
-        // I will comment out the code below to show how I will try to optimize it. Don't code is logical, but the isIdle
+        // I will comment out the code below to show how I will try to optimize it. Don's code is logical, but the isIdle
         // may be able to clean it up. I will use his bRight variable to get rid of the need for any "states".
         // Don's code is commented below
         fX =  bdyMain.getPosition().x;
